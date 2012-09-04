@@ -14,22 +14,25 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+"Nagios Plugin to check interface group demotion counter"
+
 import optparse
 import pynagios
 import re
 import subprocess
 
 class CarpDemotionCheck(pynagios.Plugin):
+    "pynagios Plugin that executes ifconfig(1) to determine demote count"
     int_group = optparse.make_option("--interface-group", dest="int_group",
                                      type="string", default="carp")
 
     def check(self):
         int_group = self.options.int_group
         try:
-            output = subprocess.check_output(('ifconfig', '-g', int_group),
-                                             stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as e:
-            message = "Error finding count: " + e.output.replace('\n', '')
+            output = str(subprocess.check_output(('ifconfig', '-g', int_group),
+                                             stderr=subprocess.STDOUT))
+        except subprocess.CalledProcessError as error:
+            message = "Error finding count: " + error.output.replace('\n', '')
             response = pynagios.response.Response(pynagios.UNKNOWN, message)
         else:
             re_match = re.search(r'carp demote count (\d+)', output)
@@ -38,9 +41,9 @@ class CarpDemotionCheck(pynagios.Plugin):
                 message = "%s demote counter is %d" % (int_group, count)
                 response = self.response_for_value(count, message)
             else:
-                message = "RE could not match output: " + output.replace('\n', '')
+                message = "Could not match output: " + output.replace('\n', '')
                 response = pynagios.response.Response(pynagios.UNKNOWN, message)
-    
+
         return response
 
 if __name__ == '__main__':
